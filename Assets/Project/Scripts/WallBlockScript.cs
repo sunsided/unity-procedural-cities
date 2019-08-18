@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using JetBrains.Annotations;
+using UnityEngine;
 
 public class WallBlockScript : MonoBehaviour
 {
@@ -23,6 +24,21 @@ public class WallBlockScript : MonoBehaviour
 
     [SerializeField]
     private GameObject roofAnchor;
+
+    public Transform RoofAnchor => roofAnchor.transform;
+
+    public void SetRoof([NotNull] GameObject roofInstance, bool setParent)
+    {
+        // Re-parent if needed.
+        // A Unity performance warning indicated that setting the parent immediately
+        // after an Instantiate() call is inefficient, hence the check.
+        if (setParent && roof.transform.parent != roofAnchor.transform)
+        {
+            roof.transform.parent = roofAnchor.transform;
+        }
+
+        roof = roofInstance;
+    }
 
     public void DestroyNorthWallIf(bool shouldDestroy)
     {

@@ -25,6 +25,9 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     private GameObject[] houseBlocks;
 
+    [SerializeField]
+    private GameObject[] roofBlocks;
+
     private int[,,] _grid;
 
     public void StartBuildingHouse()
@@ -38,7 +41,8 @@ public class HouseGenerator : MonoBehaviour
     public void GenerateHouse()
     {
         var wallBlock = houseBlocks[Random.Range(0, houseBlocks.Length)];
-        var bounds = GetBounds(wallBlock);
+        var roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
+        var wallBounds = GetBounds(wallBlock);
 
         var currentFloor = 0;
         while (currentFloor < maxFloors)
@@ -49,12 +53,12 @@ public class HouseGenerator : MonoBehaviour
                 {
                     if (_grid[row, column, currentFloor] <= 0) continue;
 
+                    // Create the block.
                     var spawnPosition = new Vector3(
-                        row * bounds.x,
-                        currentFloor * bounds.y,
-                        column * bounds.z);
+                        row * wallBounds.x,
+                        currentFloor * wallBounds.y,
+                        column * wallBounds.z);
                     var spawnedBlock = Instantiate(wallBlock, spawnPosition, Quaternion.identity);
-
                     spawnedBlock.transform.parent = houseRoot.transform;
 
                     // Remove unused walls if they are not required.
@@ -69,7 +73,15 @@ public class HouseGenerator : MonoBehaviour
                     bl.DestroyNorthWallIf(!hasNorthWall);
                     bl.DestroySouthWallIf(!hasSouthWall);
 
-                    // TODO: Add roof if it's the top floor
+                    // Add roof if it's the top floor
+                    if (currentFloor == maxFloors - 1 || _grid[row, column, currentFloor + 1] == 0)
+                    {
+                        var roofInstance = Instantiate(roofBlock, bl.RoofAnchor, true);
+                        roofInstance.transform.localPosition = Vector3.zero;
+                        roofInstance.transform.localScale = new Vector3(1, 1, 1);
+
+                        bl.SetRoof(roofInstance, false);
+                    }
                 }
             }
 

@@ -59,7 +59,7 @@ public class HouseGenerator : MonoBehaviour
 
     public bool HasRoot => houseRoot != null;
 
-    public void RebuildHouse()
+    public void RebuildHouses()
     {
         if (!HasRoot)
         {
@@ -69,6 +69,21 @@ public class HouseGenerator : MonoBehaviour
         DestroyHouses();
         SetupGrid();
         GenerateHouse();
+    }
+
+    public void DestroyHouses()
+    {
+        // In edit mode, we can't use Destroy() since the delayed destruction
+        // would never be invoked. (See https://docs.unity3d.com/ScriptReference/Object.DestroyImmediate.html)
+        // However, we can't just destroy items from the enumerable we're iterating over,
+        // so we need to collect the items into a collection first.
+        var children = (
+            from Transform child in houseRoot.transform
+            select child.gameObject).ToList();
+
+        // Note that outside the editor we're actually supposed to call Destroy
+        // instead of DestroyImmediate.
+        children.ForEach(DestroyImmediate);
     }
 
     private void GenerateHouse()
@@ -202,21 +217,6 @@ public class HouseGenerator : MonoBehaviour
                 }
             }
         }
-    }
-
-    private void DestroyHouses()
-    {
-        // In edit mode, we can't use Destroy() since the delayed destruction
-        // would never be invoked. (See https://docs.unity3d.com/ScriptReference/Object.DestroyImmediate.html)
-        // However, we can't just destroy items from the enumerable we're iterating over,
-        // so we need to collect the items into a collection first.
-        var children = (
-            from Transform child in houseRoot.transform
-            select child.gameObject).ToList();
-
-        // Note that outside the editor we're actually supposed to call Destroy
-        // instead of DestroyImmediate.
-        children.ForEach(DestroyImmediate);
     }
 
     [DebuggerDisplay("Row: {Row}, Column: {Column}, Floor: {Floor}")]

@@ -14,7 +14,12 @@ public class HouseGeneratorEditor : Editor
         {
             if (GUILayout.Button("Rebuild"))
             {
-                generator.RebuildHouse();
+                generator.RebuildHouses();
+            }
+
+            if (GUILayout.Button("Clear"))
+            {
+                generator.DestroyHouses();
             }
         }
         else

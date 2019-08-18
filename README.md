@@ -10,10 +10,14 @@ So far, the following is implemented:
   - Regular walls,
   - Walls with doors on the ground floor, and
   - Rooftops,
-  - Windows,
+  - Windows with balconies and flowers,
 - Shared wall removal.
 
-A view from the outside:
+With balconies and flowers:
+
+![](.readme/added-balconies-and-flowers.jpg)
+
+Larger clusters of blocks:
 
 ![](.readme/added-windows.jpg)
 

@@ -21,6 +21,8 @@ public class HouseGeneratorEditor : Editor
             {
                 generator.DestroyHouses();
             }
+
+            generator.AutoUpdate = EditorGUILayout.Toggle("Auto-Rebuild", generator.AutoUpdate);
         }
         else
         {

@@ -79,7 +79,23 @@ public class HouseGenerator : MonoBehaviour
 
     private int[,,] _grid;
 
+    private float _lastAutoUpdate = 0;
+
     public bool HasRoot => houseRoot != null;
+
+    public bool AutoUpdate { get; set; }
+
+    private void Update()
+    {
+        if (!AutoUpdate) return;
+
+        _lastAutoUpdate += Time.deltaTime;
+        if (_lastAutoUpdate > .5f)
+        {
+            _lastAutoUpdate = 0;
+            RebuildHouses();
+        }
+    }
 
     public void RebuildHouses()
     {

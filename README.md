@@ -3,6 +3,8 @@
 A procedural house/city generator as described in the [Build a System that Generates Houses & Castles](https://www.udemy.com/course/unity-5-build-a-system-that-generates-houses-castles-auto) Udemy course.
 This project also uses assets from the [Low Poly Nature Pack](https://free3d.com/3d-model/free-low-poly-nature-pack-16603.html).
 
+![](.readme/animation.webp)
+
 So far, the following is implemented:
 
 - 3D grid sampling for starting positions,

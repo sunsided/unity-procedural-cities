@@ -129,7 +129,8 @@ public class HouseGenerator : MonoBehaviour
     {
         var wallBlock = houseBlocks[Random.Range(0, houseBlocks.Length)];
         var roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
-        var wallBounds = wallBlock.CalculateBounds();
+
+        var wallBounds = wallBlock.GetComponent<HouseBlockScript>().CalculateBounds();
 
         for (var currentFloor = 0; currentFloor < maxFloors; ++currentFloor)
         {

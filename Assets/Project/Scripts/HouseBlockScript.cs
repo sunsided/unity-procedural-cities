@@ -1,5 +1,7 @@
-﻿using JetBrains.Annotations;
+﻿using System;
+using JetBrains.Annotations;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class HouseBlockScript : MonoBehaviour
 {
@@ -25,6 +27,9 @@ public class HouseBlockScript : MonoBehaviour
     [SerializeField]
     private GameObject roofAnchor;
 
+    [SerializeField]
+    private GameObject blockBounds;
+
     public Transform RoofAnchor => roofAnchor.transform;
 
     private enum WallDirection
@@ -33,6 +38,19 @@ public class HouseBlockScript : MonoBehaviour
         East,
         South,
         West
+    }
+
+    public Vector3 CalculateBounds()
+    {
+        if (blockBounds == null) return gameObject.CalculateBounds();
+
+        var renderer = blockBounds.GetComponent<Renderer>();
+
+        blockBounds.SetActive(true);
+        var size = renderer.bounds.size;
+        blockBounds.SetActive(false);
+
+        return size;
     }
 
     [CanBeNull]

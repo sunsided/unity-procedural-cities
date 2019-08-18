@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
+using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -56,10 +58,18 @@ public class HouseGenerator : MonoBehaviour
 
     private int[,,] _grid;
 
+    [MenuItem("House/Build")]
+    public static void BuildHouse()
+    {
+        // TODO: Selection magic - we may want to have a build button in the inspector instead.
+        var houseRoot = GameObject.Find("HouseRoot");
+        var generator = houseRoot.GetComponent<HouseGenerator>();
+        generator.StartBuildingHouse();
+    }
+
     private void StartBuildingHouse()
     {
-        // TODO: Clear existing houses
-
+        DestroyHouses();
         SetupGrid();
         GenerateHouse();
     }
@@ -196,9 +206,19 @@ public class HouseGenerator : MonoBehaviour
         }
     }
 
-    private void Start()
+    private void DestroyHouses()
     {
-        StartBuildingHouse();
+        // In edit mode, we can't use Destroy() since the delayed destruction
+        // would never be invoked. (See https://docs.unity3d.com/ScriptReference/Object.DestroyImmediate.html)
+        // However, we can't just destroy items from the enumerable we're iterating over,
+        // so we need to collect the items into a collection first.
+        var children = (
+            from Transform child in houseRoot.transform
+            select child.gameObject).ToList();
+
+        // Note that outside the editor we're actually supposed to call Destroy
+        // instead of DestroyImmediate.
+        children.ForEach(DestroyImmediate);
     }
 
     [DebuggerDisplay("Row: {Row}, Column: {Column}, Floor: {Floor}")]

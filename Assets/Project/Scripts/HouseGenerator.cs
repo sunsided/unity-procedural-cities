@@ -124,23 +124,28 @@ public class HouseGenerator : MonoBehaviour
             {
                 for (var column = 0; column < columns; ++column)
                 {
-                    var currentValue = _grid[row, column, floor];
-                    if (currentValue != 0)
-                    {
-                        var cellWest = (row == 0) ? 0 : _grid[row - 1, column, floor];
-                        var cellEast = (row == rows -1) ? 0 : _grid[row + 1, column, floor];
-                        var cellNorth = (column == columns - 1) ? 0 : _grid[row, column + 1, floor];
-                        var cellSouth = (column == 0) ? 0 : _grid[row, column - 1, floor];
+                    if (_grid[row, column, floor] == 0) continue;
 
-                        var isConnected = cellWest > 0 || cellEast > 0 || cellNorth > 0 || cellSouth > 0;
-                        if (!isConnected)
-                        {
-                            var isRoof = floor == 0 || _grid[row, column, floor - 1] == 0; // TODO: Shouldn't this be "floor + 1"?
-                            if (isRoof)
-                            {
-                                _grid[row, column, floor] = 0;
-                            }
-                        }
+                    var cellWest = (row == 0) ? 0 : _grid[row - 1, column, floor];
+                    var cellEast = (row == rows -1) ? 0 : _grid[row + 1, column, floor];
+                    var cellNorth = (column == columns - 1) ? 0 : _grid[row, column + 1, floor];
+                    var cellSouth = (column == 0) ? 0 : _grid[row, column - 1, floor];
+
+                    // The first check determines whether there are connected components on
+                    // the same level, i.e. in either horizontal direction.
+                    // By keeping connected blocks, we're encouraging clustering - i.e. houses
+                    // that are not just one block wide.
+                    var isConnectedHorizontally = cellWest > 0 || cellEast > 0 || cellNorth > 0 || cellSouth > 0;
+                    if (isConnectedHorizontally) continue;
+
+                    // The next check ensures that horizontally disconnected blocks are only removed
+                    // if they are either on the ground or if they are not on top of another block.
+                    // If we remove this check, we enforce that that a floor must always be at least two blocks wide,
+                    // preventing the formation of towers.
+                    var hasNothingUnderneath = floor == 0 || _grid[row, column, floor - 1] == 0;
+                    if (hasNothingUnderneath)
+                    {
+                        _grid[row, column, floor] = 0;
                     }
                 }
             }

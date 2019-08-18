@@ -1,9 +1,11 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
 
 public class HouseGenerator : MonoBehaviour
 {
@@ -36,6 +38,9 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     private GameObject[] windowBlocks;
 
+    [SerializeField]
+    private GameObject[] outdoorItems;
+
     /// <summary>
     ///     The probability of a block to have a door.
     /// </summary>
@@ -55,8 +60,18 @@ public class HouseGenerator : MonoBehaviour
     [Range(0f, 1f)]
     private float windowProbability = 0.5f;
 
+    /// <summary>
+    ///     The probability of an outdoor item to be spawned.
+    /// </summary>
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float outdoorItemProbability = 0.25f;
+
     [SerializeField]
     private bool mixedRoofs;
+
+    [SerializeField]
+    private ValueRange outdoorItemRandomRotation;
 
     private int[,,] _grid;
 
@@ -69,6 +84,7 @@ public class HouseGenerator : MonoBehaviour
             Debug.LogError("No root object was assigned.");
             return;
         }
+
         DestroyHouses();
         SetupGrid();
         GenerateHouse();
@@ -102,34 +118,50 @@ public class HouseGenerator : MonoBehaviour
                 for (var column = 0; column < columns; ++column)
                 {
                     var cellPosition = new CellPosition(row, column, currentFloor);
-                    if (_grid[row, column, currentFloor] <= 0) continue;
-
-                    // Select a new roof prefab.
-                    if (mixedRoofs)
+                    if (_grid[row, column, currentFloor] > 0)
                     {
-                        roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
+                        // Select a new roof prefab.
+                        if (mixedRoofs)
+                        {
+                            roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
+                        }
+
+                        // Create the block.
+                        var spawnPosition = new Vector3(
+                            row * wallBounds.x,
+                            currentFloor * wallBounds.y,
+                            column * wallBounds.z);
+                        var spawnedBlock = Instantiate(wallBlock, spawnPosition, Quaternion.identity);
+                        spawnedBlock.transform.parent = houseRoot.transform;
+
+                        // Remove unused walls if they are not required.
+                        var bl = spawnedBlock.GetComponent<HouseBlockScript>();
+                        RemoveDoubleWalls(bl, cellPosition);
+
+                        // Add roof if it's the top floor
+                        AddRoofIfTopFloor(bl, roofBlock, cellPosition);
+
+                        // Adding doors.
+                        GenerateDoorIfGroundFloor(bl, spawnedBlock, cellPosition);
+
+                        // Adding windows.
+                        GenerateWindows(bl, spawnedBlock);
                     }
+                    else if (currentFloor == 0 && Random.Range(0f, 1f) < outdoorItemProbability &&
+                             outdoorItems.Length > 0)
+                    {
+                        var outdoorItemPrefab = outdoorItems[Random.Range(0, outdoorItems.Length)];
+                        var spawnPosition = new Vector3(
+                            row * wallBounds.x,
+                            currentFloor * wallBounds.y,
+                            column * wallBounds.z);
+                        var spawnedBlock = Instantiate(outdoorItemPrefab, spawnPosition, Quaternion.identity);
+                        spawnedBlock.transform.parent = houseRoot.transform;
 
-                    // Create the block.
-                    var spawnPosition = new Vector3(
-                        row * wallBounds.x,
-                        currentFloor * wallBounds.y,
-                        column * wallBounds.z);
-                    var spawnedBlock = Instantiate(wallBlock, spawnPosition, Quaternion.identity);
-                    spawnedBlock.transform.parent = houseRoot.transform;
-
-                    // Remove unused walls if they are not required.
-                    var bl = spawnedBlock.GetComponent<HouseBlockScript>();
-                    RemoveDoubleWalls(bl, cellPosition);
-
-                    // Add roof if it's the top floor
-                    AddRoofIfTopFloor(bl, roofBlock, cellPosition);
-
-                    // Adding doors.
-                    GenerateDoorIfGroundFloor(bl, spawnedBlock, cellPosition);
-
-                    // Adding windows.
-                    GenerateWindows(bl, spawnedBlock);
+                        var rotationAngle = Random.Range(outdoorItemRandomRotation.Minimum,
+                            outdoorItemRandomRotation.Maximum);
+                        spawnedBlock.transform.rotation = Quaternion.AngleAxis(rotationAngle, Vector3.up);
+                    }
                 }
             }
         }
@@ -163,7 +195,7 @@ public class HouseGenerator : MonoBehaviour
     private void GenerateDoorIfGroundFloor([NotNull] HouseBlockScript bl, [NotNull] GameObject block,
         in CellPosition position)
     {
-        if (position.Floor != 0 || !(Random.Range(0f, 1f) <= blockDoorProbability)) return;
+        if (position.Floor != 0 || !(Random.Range(0f, 1f) < blockDoorProbability)) return;
         var wallPrefab = wallsWithDoors[Random.Range(0, wallsWithDoors.Length)];
         bl.ReplaceRandomWallWithPrefab(wallPrefab, block.transform);
     }
@@ -254,5 +286,12 @@ public class HouseGenerator : MonoBehaviour
             column = Column;
             floor = Floor;
         }
+    }
+
+    [Serializable]
+    private struct ValueRange
+    {
+        public float Minimum;
+        public float Maximum;
     }
 }

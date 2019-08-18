@@ -22,9 +22,6 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     private int maxFloors;
 
-    [SerializeField]
-    private int stickiness = 1;
-
     [Header("Grid composition")]
     [SerializeField]
     private GameObject[] houseBlocks;
@@ -42,16 +39,19 @@ public class HouseGenerator : MonoBehaviour
     private GameObject[] outdoorItems;
 
     /// <summary>
-    ///     The probability of a block to have a door.
+    ///     The probability of a house block to be created on the floor.
     /// </summary>
-    /// <remarks>
-    ///     Note that a block can only have one door at most,
-    ///     or no door at all. Doors are never created on pruned walls.
-    /// </remarks>
     [Header("Appearance")]
     [SerializeField]
     [Range(0f, 1f)]
-    private float blockDoorProbability = .4f;
+    private float houseProbability = .8f;
+
+    /// <summary>
+    ///     The probability of a house creating an additional level.
+    /// </summary>
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float houseLevelProbability = .5f;
 
     /// <summary>
     ///     The probability of a wall to have a window.
@@ -59,6 +59,10 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     [Range(0f, 1f)]
     private float windowProbability = 0.5f;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float blockDoorProbability = .4f;
 
     /// <summary>
     ///     The probability of an outdoor item to be spawned.
@@ -211,11 +215,12 @@ public class HouseGenerator : MonoBehaviour
         _grid = new int[rows, columns, maxFloors];
         for (var floor = 0; floor < maxFloors; ++floor)
         {
+            var probability = floor == 0 ? houseProbability : houseLevelProbability;
             for (var row = 0; row < rows; ++row)
             {
                 for (var column = 0; column < columns; ++column)
                 {
-                    var randomValue = Random.Range(0, stickiness);
+                    var randomValue = Random.Range(0f, 1f) <= probability ? 1 : 0;
                     if (randomValue <= 0) continue;
                     if (floor == 0 || _grid[row, column, floor - 1] > 0)
                     {

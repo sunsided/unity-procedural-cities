@@ -1,5 +1,8 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public class HouseGenerator : MonoBehaviour
 {
@@ -29,9 +32,21 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     private GameObject[] roofBlocks;
 
+    /// <summary>
+    /// The probability of a block to have a door.
+    /// </summary>
+    /// <remarks>
+    /// Note that a block can only have one door at most,
+    /// or no door at all. Doors are never created on pruned walls.
+    /// </remarks>
+    [Header("Appearance")]
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float blockDoorProbability = .4f;
+
     private int[,,] _grid;
 
-    public void StartBuildingHouse()
+    private void StartBuildingHouse()
     {
         // TODO: Clear existing houses
 
@@ -39,19 +54,19 @@ public class HouseGenerator : MonoBehaviour
         GenerateHouse();
     }
 
-    public void GenerateHouse()
+    private void GenerateHouse()
     {
         var wallBlock = houseBlocks[Random.Range(0, houseBlocks.Length)];
         var roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
-        var wallBounds = GetBounds(wallBlock);
+        var wallBounds = CalculateBounds(wallBlock);
 
-        var currentFloor = 0;
-        while (currentFloor < maxFloors)
+        for (var currentFloor = 0; currentFloor < maxFloors; ++currentFloor)
         {
             for (var row = 0; row < rows; ++row)
             {
                 for (var column = 0; column < columns; ++column)
                 {
+                    var position = new CellPosition(row, column, currentFloor);
                     if (_grid[row, column, currentFloor] <= 0) continue;
 
                     // Create the block.
@@ -63,49 +78,53 @@ public class HouseGenerator : MonoBehaviour
                     spawnedBlock.transform.parent = houseRoot.transform;
 
                     // Remove unused walls if they are not required.
-                    var hasWestWall = row == 0 || _grid[row - 1, column, currentFloor] == 0;
-                    var hasEastWall = row == rows - 1 || _grid[row + 1, column, currentFloor] == 0;
-                    var hasNorthWall = column == columns - 1 || _grid[row, column + 1, currentFloor] == 0;
-                    var hasSouthWall = column == 0 || _grid[row, column - 1, currentFloor] == 0;
-
                     var bl = spawnedBlock.GetComponent<WallBlockScript>();
-                    bl.DestroyWestWallIf(!hasWestWall);
-                    bl.DestroyEastWallIf(!hasEastWall);
-                    bl.DestroyNorthWallIf(!hasNorthWall);
-                    bl.DestroySouthWallIf(!hasSouthWall);
+                    RemoveDoubleWalls(bl, position);
 
                     // Add roof if it's the top floor
-                    if (currentFloor == maxFloors - 1 || _grid[row, column, currentFloor + 1] == 0)
-                    {
-                        var roofInstance = Instantiate(roofBlock, bl.RoofAnchor, true);
-                        roofInstance.transform.localPosition = Vector3.zero;
-                        roofInstance.transform.localScale = new Vector3(1, 1, 1);
-
-                        bl.SetRoof(roofInstance, false);
-                    }
+                    AddRoofIfTopFloor(bl, roofBlock, position);
 
                     // Adding doors.
-                    const float doorProbability = .4f;
-                    if (currentFloor == 0 && Random.Range(0f, 1f) <= doorProbability)
-                    {
-                        GenerateDoor(spawnedBlock, bl);
-                    }
+                    GenerateDoorIfGroundFloor(bl, spawnedBlock, position);
                 }
             }
-
-            ++currentFloor;
         }
     }
 
-    private void GenerateDoor([NotNull] GameObject block, [NotNull] WallBlockScript bl)
+    private void AddRoofIfTopFloor(WallBlockScript bl, GameObject roofBlock, in CellPosition pos)
     {
+        if (pos.Floor != maxFloors - 1 && _grid[pos.Row, pos.Column, pos.Floor + 1] != 0) return;
+
+        var roofInstance = Instantiate(roofBlock, bl.RoofAnchor, true);
+        roofInstance.transform.localPosition = Vector3.zero;
+        roofInstance.transform.localScale = new Vector3(1, 1, 1);
+
+        bl.SetRoof(roofInstance, false);
+    }
+
+    private void RemoveDoubleWalls([NotNull] WallBlockScript bl, in CellPosition pos)
+    {
+        var (row, column, floor) = pos;
+        var hasWestWall = row == 0 || _grid[row - 1, column, floor] == 0;
+        var hasEastWall = row == rows - 1 || _grid[row + 1, column, floor] == 0;
+        var hasNorthWall = column == columns - 1 || _grid[row, column + 1, floor] == 0;
+        var hasSouthWall = column == 0 || _grid[row, column - 1, floor] == 0;
+
+        bl.DestroyWestWallIf(!hasWestWall);
+        bl.DestroyEastWallIf(!hasEastWall);
+        bl.DestroyNorthWallIf(!hasNorthWall);
+        bl.DestroySouthWallIf(!hasSouthWall);
+    }
+
+    private void GenerateDoorIfGroundFloor([NotNull] WallBlockScript bl, [NotNull] GameObject block, in CellPosition position)
+    {
+        if (position.Floor != 0 || !(Random.Range(0f, 1f) <= blockDoorProbability)) return;
         var wallPrefab = wallsWithDoors[Random.Range(0, wallsWithDoors.Length)];
         bl.ReplaceWallWithPrefab(wallPrefab, block.transform);
     }
 
-    private Vector3 GetBounds([NotNull] GameObject obj)
+    private Vector3 CalculateBounds([NotNull] GameObject obj)
     {
-        var initialPos = obj.transform.position; // TODO: This one was included in the lessons, but seems unused.
         obj.transform.position = Vector3.zero;
 
         // Get the renderer of the containing object.
@@ -181,5 +200,33 @@ public class HouseGenerator : MonoBehaviour
     private void Start()
     {
         StartBuildingHouse();
+    }
+
+    [DebuggerDisplay("Row: {Row}, Column: {Column}, Floor: {Floor}")]
+    private readonly struct CellPosition
+    {
+        public readonly int Row;
+
+        public readonly int Column;
+
+        public readonly int Floor;
+
+        public CellPosition(int row, int column, int floor)
+        {
+            Debug.Assert(row >= 0, "row >= 0");
+            Debug.Assert(column >= 0, "column >= 0");
+            Debug.Assert(floor >= 0, "floor >= 0");
+            Row = row;
+            Column = column;
+            Floor = floor;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Deconstruct(out int row, out int column, out int floor)
+        {
+            row = Row;
+            column = Column;
+            floor = Floor;
+        }
     }
 }

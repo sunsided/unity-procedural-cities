@@ -55,6 +55,9 @@ public class HouseGenerator : MonoBehaviour
     [Range(0f, 1f)]
     private float windowProbability = 0.5f;
 
+    [SerializeField]
+    private bool mixedRoofs;
+
     private int[,,] _grid;
 
     public bool HasRoot => houseRoot != null;
@@ -100,6 +103,12 @@ public class HouseGenerator : MonoBehaviour
                 {
                     var cellPosition = new CellPosition(row, column, currentFloor);
                     if (_grid[row, column, currentFloor] <= 0) continue;
+
+                    // Select a new roof prefab.
+                    if (mixedRoofs)
+                    {
+                        roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
+                    }
 
                     // Create the block.
                     var spawnPosition = new Vector3(

@@ -1,7 +1,5 @@
-﻿using System;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class HouseGenerator : MonoBehaviour
 {
@@ -24,6 +22,9 @@ public class HouseGenerator : MonoBehaviour
     [Header("Grid composition")]
     [SerializeField]
     private GameObject[] houseBlocks;
+
+    [SerializeField]
+    private GameObject[] wallsWithDoors;
 
     [SerializeField]
     private GameObject[] roofBlocks;
@@ -62,10 +63,10 @@ public class HouseGenerator : MonoBehaviour
                     spawnedBlock.transform.parent = houseRoot.transform;
 
                     // Remove unused walls if they are not required.
-                    var hasWestWall = (row == 0) || (_grid[row - 1, column, currentFloor] == 0);
-                    var hasEastWall = (row == rows - 1) || (_grid[row + 1, column, currentFloor] == 0);
-                    var hasNorthWall = (column == columns - 1) || (_grid[row, column + 1, currentFloor] == 0);
-                    var hasSouthWall = (column == 0) || (_grid[row, column - 1, currentFloor] == 0);
+                    var hasWestWall = row == 0 || _grid[row - 1, column, currentFloor] == 0;
+                    var hasEastWall = row == rows - 1 || _grid[row + 1, column, currentFloor] == 0;
+                    var hasNorthWall = column == columns - 1 || _grid[row, column + 1, currentFloor] == 0;
+                    var hasSouthWall = column == 0 || _grid[row, column - 1, currentFloor] == 0;
 
                     var bl = spawnedBlock.GetComponent<WallBlockScript>();
                     bl.DestroyWestWallIf(!hasWestWall);
@@ -82,11 +83,24 @@ public class HouseGenerator : MonoBehaviour
 
                         bl.SetRoof(roofInstance, false);
                     }
+
+                    // Adding doors.
+                    const float doorProbability = .4f;
+                    if (currentFloor == 0 && Random.Range(0f, 1f) <= doorProbability)
+                    {
+                        GenerateDoor(spawnedBlock, bl);
+                    }
                 }
             }
 
             ++currentFloor;
         }
+    }
+
+    private void GenerateDoor([NotNull] GameObject block, [NotNull] WallBlockScript bl)
+    {
+        var wallPrefab = wallsWithDoors[Random.Range(0, wallsWithDoors.Length)];
+        bl.ReplaceWallWithPrefab(wallPrefab, block.transform);
     }
 
     private Vector3 GetBounds([NotNull] GameObject obj)
@@ -138,10 +152,10 @@ public class HouseGenerator : MonoBehaviour
                 {
                     if (_grid[row, column, floor] == 0) continue;
 
-                    var cellWest = (row == 0) ? 0 : _grid[row - 1, column, floor];
-                    var cellEast = (row == rows -1) ? 0 : _grid[row + 1, column, floor];
-                    var cellNorth = (column == columns - 1) ? 0 : _grid[row, column + 1, floor];
-                    var cellSouth = (column == 0) ? 0 : _grid[row, column - 1, floor];
+                    var cellWest = row == 0 ? 0 : _grid[row - 1, column, floor];
+                    var cellEast = row == rows - 1 ? 0 : _grid[row + 1, column, floor];
+                    var cellNorth = column == columns - 1 ? 0 : _grid[row, column + 1, floor];
+                    var cellSouth = column == 0 ? 0 : _grid[row, column - 1, floor];
 
                     // The first check determines whether there are connected components on
                     // the same level, i.e. in either horizontal direction.

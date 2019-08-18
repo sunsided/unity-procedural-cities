@@ -32,6 +32,9 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     private GameObject[] roofBlocks;
 
+    [SerializeField]
+    private GameObject[] windowBlocks;
+
     /// <summary>
     /// The probability of a block to have a door.
     /// </summary>
@@ -43,6 +46,13 @@ public class HouseGenerator : MonoBehaviour
     [SerializeField]
     [Range(0f, 1f)]
     private float blockDoorProbability = .4f;
+
+    /// <summary>
+    /// The probability of a wall to have a window.
+    /// </summary>
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float windowProbability = 0.5f;
 
     private int[,,] _grid;
 
@@ -58,7 +68,7 @@ public class HouseGenerator : MonoBehaviour
     {
         var wallBlock = houseBlocks[Random.Range(0, houseBlocks.Length)];
         var roofBlock = roofBlocks[Random.Range(0, roofBlocks.Length)];
-        var wallBounds = CalculateBounds(wallBlock);
+        var wallBounds = wallBlock.CalculateBounds();
 
         for (var currentFloor = 0; currentFloor < maxFloors; ++currentFloor)
         {
@@ -66,7 +76,7 @@ public class HouseGenerator : MonoBehaviour
             {
                 for (var column = 0; column < columns; ++column)
                 {
-                    var position = new CellPosition(row, column, currentFloor);
+                    var cellPosition = new CellPosition(row, column, currentFloor);
                     if (_grid[row, column, currentFloor] <= 0) continue;
 
                     // Create the block.
@@ -78,20 +88,23 @@ public class HouseGenerator : MonoBehaviour
                     spawnedBlock.transform.parent = houseRoot.transform;
 
                     // Remove unused walls if they are not required.
-                    var bl = spawnedBlock.GetComponent<WallBlockScript>();
-                    RemoveDoubleWalls(bl, position);
+                    var bl = spawnedBlock.GetComponent<HouseBlockScript>();
+                    RemoveDoubleWalls(bl, cellPosition);
 
                     // Add roof if it's the top floor
-                    AddRoofIfTopFloor(bl, roofBlock, position);
+                    AddRoofIfTopFloor(bl, roofBlock, cellPosition);
 
                     // Adding doors.
-                    GenerateDoorIfGroundFloor(bl, spawnedBlock, position);
+                    GenerateDoorIfGroundFloor(bl, spawnedBlock, cellPosition);
+
+                    // Adding windows.
+                    GenerateWindows(bl, spawnedBlock);
                 }
             }
         }
     }
 
-    private void AddRoofIfTopFloor(WallBlockScript bl, GameObject roofBlock, in CellPosition pos)
+    private void AddRoofIfTopFloor(HouseBlockScript bl, GameObject roofBlock, in CellPosition pos)
     {
         if (pos.Floor != maxFloors - 1 && _grid[pos.Row, pos.Column, pos.Floor + 1] != 0) return;
 
@@ -102,7 +115,7 @@ public class HouseGenerator : MonoBehaviour
         bl.SetRoof(roofInstance, false);
     }
 
-    private void RemoveDoubleWalls([NotNull] WallBlockScript bl, in CellPosition pos)
+    private void RemoveDoubleWalls([NotNull] HouseBlockScript bl, in CellPosition pos)
     {
         var (row, column, floor) = pos;
         var hasWestWall = row == 0 || _grid[row - 1, column, floor] == 0;
@@ -116,31 +129,17 @@ public class HouseGenerator : MonoBehaviour
         bl.DestroySouthWallIf(!hasSouthWall);
     }
 
-    private void GenerateDoorIfGroundFloor([NotNull] WallBlockScript bl, [NotNull] GameObject block, in CellPosition position)
+    private void GenerateDoorIfGroundFloor([NotNull] HouseBlockScript bl, [NotNull] GameObject block, in CellPosition position)
     {
         if (position.Floor != 0 || !(Random.Range(0f, 1f) <= blockDoorProbability)) return;
         var wallPrefab = wallsWithDoors[Random.Range(0, wallsWithDoors.Length)];
-        bl.ReplaceWallWithPrefab(wallPrefab, block.transform);
+        bl.ReplaceRandomWallWithPrefab(wallPrefab, block.transform);
     }
 
-    private Vector3 CalculateBounds([NotNull] GameObject obj)
+    private void GenerateWindows([NotNull] HouseBlockScript bl, [NotNull] GameObject block)
     {
-        obj.transform.position = Vector3.zero;
-
-        // Get the renderer of the containing object.
-        var houseRenderer = obj.GetComponent<Renderer>();
-        var combinedBounds = houseRenderer != null
-            ? houseRenderer.bounds
-            : new Bounds();
-
-        // Accumulate the bounds of all active children.
-        var renderers = obj.GetComponentsInChildren<Renderer>(false);
-        foreach (var childRenderer in renderers)
-        {
-            combinedBounds.Encapsulate(childRenderer.bounds);
-        }
-
-        return combinedBounds.size;
+        var windowPrefab = windowBlocks[Random.Range(0, windowBlocks.Length)];
+        bl.AddWindowToRandomWall(windowPrefab, block.transform, windowProbability);
     }
 
     private void SetupGrid()

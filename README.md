@@ -10,11 +10,12 @@ So far, the following is implemented:
   - Regular walls,
   - Walls with doors on the ground floor, and
   - Rooftops,
+  - Windows,
 - Shared wall removal.
 
 A view from the outside:
 
-![](.readme/roofs-and-doors.jpg)
+![](.readme/added-windows.jpg)
 
 A view from the inside:
 

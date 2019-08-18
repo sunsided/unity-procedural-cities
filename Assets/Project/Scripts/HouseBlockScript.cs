@@ -1,7 +1,7 @@
 ﻿using JetBrains.Annotations;
 using UnityEngine;
 
-public class WallBlockScript : MonoBehaviour
+public class HouseBlockScript : MonoBehaviour
 {
     [Header("Walls")]
     [SerializeField]
@@ -36,7 +36,7 @@ public class WallBlockScript : MonoBehaviour
     }
 
     [CanBeNull]
-    public void ReplaceWallWithPrefab([NotNull] GameObject prefab, [NotNull] Transform parent)
+    public void ReplaceRandomWallWithPrefab([NotNull] GameObject prefab, [NotNull] Transform parent)
     {
         // Determine the available walls.
         var availableWalls = new WallDirection[4];
@@ -102,6 +102,62 @@ public class WallBlockScript : MonoBehaviour
         DestroyImmediate(originalWall);
     }
 
+    public void AddWindowToRandomWall([NotNull] GameObject windowPrefab, [NotNull] Transform parent, float windowProbability)
+    {
+        // Note that the order of elements is important as we're going to switch
+        // on the indices later.
+        var walls = new[] { northWall, eastWall, southWall, westWall };
+
+        for (var arrayIndex = 0; arrayIndex < walls.Length; ++arrayIndex)
+        {
+            if (Random.Range(0f, 1f) >= windowProbability) continue;
+
+            var wall = walls[arrayIndex];
+            if (wall == null) continue;
+
+            // We do not want to position a window on top of a door.
+            // Our heuristic here is that door walls have a child object (the door).
+            var canHaveWindow = wall.transform.childCount == 0;
+            if (!canHaveWindow) continue;
+
+            var window = Instantiate(windowPrefab, parent, true);
+            var windowSize = window.CalculateBounds();
+
+            var tr = wall.transform;
+            window.transform.position = tr.position;
+            window.transform.rotation = tr.rotation;
+
+            // Nudge the window outside the wall so that we can actually see it.
+            const float nudgeFactor = 1.1f;
+            switch (arrayIndex)
+            {
+                case 0: // North
+                {
+                    window.transform.position += new Vector3(0, 0, nudgeFactor * windowSize.z);
+                    break;
+                }
+
+                case 1: // East
+                {
+                    window.transform.position += new Vector3(nudgeFactor * windowSize.z, 0, 0);
+                    break;
+                }
+
+                case 2: // South
+                {
+                    window.transform.position += new Vector3(0, 0, -nudgeFactor * windowSize.z);
+                    break;
+                }
+
+                case 3: // West
+                {
+                    window.transform.position += new Vector3(-nudgeFactor * windowSize.z, 0, 0);
+                    break;
+                }
+            }
+        }
+    }
+
     public void SetRoof([NotNull] GameObject roofInstance, bool setParent)
     {
         // Re-parent if needed.
@@ -138,4 +194,5 @@ public class WallBlockScript : MonoBehaviour
         if (!shouldDestroy) return;
         DestroyImmediate(westWall);
     }
+
 }

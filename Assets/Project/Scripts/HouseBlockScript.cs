@@ -102,7 +102,8 @@ public class HouseBlockScript : MonoBehaviour
         DestroyImmediate(originalWall);
     }
 
-    public void AddWindowToRandomWall([NotNull] GameObject windowPrefab, [NotNull] Transform parent, float windowProbability)
+    public void AddWindowToRandomWall([NotNull] GameObject windowPrefab, [NotNull] Transform parent,
+        float windowProbability)
     {
         // Note that the order of elements is important as we're going to switch
         // on the indices later.
@@ -194,5 +195,4 @@ public class HouseBlockScript : MonoBehaviour
         if (!shouldDestroy) return;
         DestroyImmediate(westWall);
     }
-
 }

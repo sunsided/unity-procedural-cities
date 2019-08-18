@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
-using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -38,11 +37,11 @@ public class HouseGenerator : MonoBehaviour
     private GameObject[] windowBlocks;
 
     /// <summary>
-    /// The probability of a block to have a door.
+    ///     The probability of a block to have a door.
     /// </summary>
     /// <remarks>
-    /// Note that a block can only have one door at most,
-    /// or no door at all. Doors are never created on pruned walls.
+    ///     Note that a block can only have one door at most,
+    ///     or no door at all. Doors are never created on pruned walls.
     /// </remarks>
     [Header("Appearance")]
     [SerializeField]
@@ -50,7 +49,7 @@ public class HouseGenerator : MonoBehaviour
     private float blockDoorProbability = .4f;
 
     /// <summary>
-    /// The probability of a wall to have a window.
+    ///     The probability of a wall to have a window.
     /// </summary>
     [SerializeField]
     [Range(0f, 1f)]
@@ -58,17 +57,15 @@ public class HouseGenerator : MonoBehaviour
 
     private int[,,] _grid;
 
-    [MenuItem("House/Build")]
-    public static void BuildHouse()
-    {
-        // TODO: Selection magic - we may want to have a build button in the inspector instead.
-        var houseRoot = GameObject.Find("HouseRoot");
-        var generator = houseRoot.GetComponent<HouseGenerator>();
-        generator.StartBuildingHouse();
-    }
+    public bool HasRoot => houseRoot != null;
 
-    private void StartBuildingHouse()
+    public void RebuildHouse()
     {
+        if (!HasRoot)
+        {
+            Debug.LogError("No root object was assigned.");
+            return;
+        }
         DestroyHouses();
         SetupGrid();
         GenerateHouse();
@@ -139,7 +136,8 @@ public class HouseGenerator : MonoBehaviour
         bl.DestroySouthWallIf(!hasSouthWall);
     }
 
-    private void GenerateDoorIfGroundFloor([NotNull] HouseBlockScript bl, [NotNull] GameObject block, in CellPosition position)
+    private void GenerateDoorIfGroundFloor([NotNull] HouseBlockScript bl, [NotNull] GameObject block,
+        in CellPosition position)
     {
         if (position.Floor != 0 || !(Random.Range(0f, 1f) <= blockDoorProbability)) return;
         var wallPrefab = wallsWithDoors[Random.Range(0, wallsWithDoors.Length)];
